@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  name        String
+  description String
+  difficulty  String
+  maxPlayers  Int
+  timeSlots   TimeSlot[]
+  createdAt   DateTime   @default(now())
+}
+
+model TimeSlot {
+  id        String   @id @default(cuid())
+  roomId    String
+  startTime DateTime
+  endTime   DateTime
+  room      Room     @relation(fields: [roomId], references: [id])
+  hold      Hold?
+  booking   Booking?
+  createdAt DateTime @default(now())
+
+  @@unique([roomId, startTime])
+}
+
+model Hold {
+  id          String   @id @default(cuid())
+  timeSlotId  String   @unique
+  playerName  String
+  playerEmail String
+  expiresAt   DateTime
+  timeSlot    TimeSlot @relation(fields: [timeSlotId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  timeSlotId  String   @unique
+  playerName  String
+  playerEmail String
+  timeSlot    TimeSlot @relation(fields: [timeSlotId], references: [id])
+  createdAt   DateTime @default(now())
+}
