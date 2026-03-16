@@ -62,6 +62,8 @@ describe("Hold expiration", () => {
 
     const request = new Request("http://localhost/api/holds/" + hold.id + "/confirm", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerEmail: "alice@test.com" }),
     });
     const response = await confirmHold(request, makeParamsPromise(hold.id));
     expect(response.status).toBe(410);
@@ -161,7 +163,11 @@ describe("Full confirm flow", () => {
     // Step 2: Confirm the hold
     const confirmRequest = new Request(
       "http://localhost/api/holds/" + hold.id + "/confirm",
-      { method: "POST" }
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerEmail: "alice@test.com" }),
+      }
     );
     const confirmResponse = await confirmHold(
       confirmRequest,
@@ -198,6 +204,8 @@ describe("Full confirm flow", () => {
     await confirmHold(
       new Request("http://localhost/api/holds/" + hold.id + "/confirm", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerEmail: "alice@test.com" }),
       }),
       makeParamsPromise(hold.id)
     );
@@ -227,7 +235,11 @@ describe("Full confirm flow", () => {
 
     const deleteRequest = new Request(
       "http://localhost/api/holds/" + hold.id,
-      { method: "DELETE" }
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerEmail: "alice@test.com" }),
+      }
     );
     const deleteResponse = await deleteHold(
       deleteRequest,
@@ -240,6 +252,94 @@ describe("Full confirm flow", () => {
       where: { id: hold.id },
     });
     expect(holdInDb).toBeNull();
+  });
+
+  it("should return 403 when confirming with wrong email", async () => {
+    const holdResponse = await createHold(
+      makeRequest({
+        timeSlotId: testSlotId,
+        playerName: "Alice",
+        playerEmail: "alice@test.com",
+      })
+    );
+    const hold = await holdResponse.json();
+
+    const confirmRequest = new Request(
+      "http://localhost/api/holds/" + hold.id + "/confirm",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerEmail: "wrong@test.com" }),
+      }
+    );
+    const response = await confirmHold(confirmRequest, makeParamsPromise(hold.id));
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toBe("Not authorized to confirm this hold");
+  });
+
+  it("should return 400 when confirming without playerEmail", async () => {
+    const holdResponse = await createHold(
+      makeRequest({
+        timeSlotId: testSlotId,
+        playerName: "Alice",
+        playerEmail: "alice@test.com",
+      })
+    );
+    const hold = await holdResponse.json();
+
+    const confirmRequest = new Request(
+      "http://localhost/api/holds/" + hold.id + "/confirm",
+      { method: "POST" }
+    );
+    const response = await confirmHold(confirmRequest, makeParamsPromise(hold.id));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("playerEmail is required");
+  });
+
+  it("should return 403 when deleting with wrong email", async () => {
+    const holdResponse = await createHold(
+      makeRequest({
+        timeSlotId: testSlotId,
+        playerName: "Alice",
+        playerEmail: "alice@test.com",
+      })
+    );
+    const hold = await holdResponse.json();
+
+    const deleteRequest = new Request(
+      "http://localhost/api/holds/" + hold.id,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerEmail: "wrong@test.com" }),
+      }
+    );
+    const response = await deleteHold(deleteRequest, makeParamsPromise(hold.id));
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toBe("Not authorized to release this hold");
+  });
+
+  it("should return 400 when deleting without playerEmail", async () => {
+    const holdResponse = await createHold(
+      makeRequest({
+        timeSlotId: testSlotId,
+        playerName: "Alice",
+        playerEmail: "alice@test.com",
+      })
+    );
+    const hold = await holdResponse.json();
+
+    const deleteRequest = new Request(
+      "http://localhost/api/holds/" + hold.id,
+      { method: "DELETE" }
+    );
+    const response = await deleteHold(deleteRequest, makeParamsPromise(hold.id));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("playerEmail is required");
   });
 
   it("should validate required fields", async () => {

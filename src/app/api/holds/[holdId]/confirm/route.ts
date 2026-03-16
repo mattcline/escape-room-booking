@@ -4,10 +4,28 @@ import { isHoldExpired } from "@/lib/holds";
 import { Prisma } from "@prisma/client";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ holdId: string }> }
 ) {
   const { holdId } = await params;
+
+  let body: { playerEmail?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "playerEmail is required" },
+      { status: 400 }
+    );
+  }
+
+  const { playerEmail } = body;
+  if (!playerEmail) {
+    return NextResponse.json(
+      { error: "playerEmail is required" },
+      { status: 400 }
+    );
+  }
 
   try {
     const booking = await prisma.$transaction(async (tx) => {
@@ -17,6 +35,10 @@ export async function POST(
 
       if (!hold) {
         throw new ConfirmError(404, "Hold not found");
+      }
+
+      if (hold.playerEmail !== playerEmail) {
+        throw new ConfirmError(403, "Not authorized to confirm this hold");
       }
 
       if (isHoldExpired(hold)) {

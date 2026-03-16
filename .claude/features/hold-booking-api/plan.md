@@ -9,6 +9,7 @@
 - [x] Task 5: Tests (expiration, race conditions, full confirm flow)
 - [x] Task 6: README
 - [x] Task 7: Final Verification
+- [x] Task 8: Email-based authorization for hold confirm/delete
 
 ## Notes
 
