@@ -10,6 +10,7 @@
 - [x] Task 6: README
 - [x] Task 7: Final Verification
 - [x] Task 8: Email-based authorization for hold confirm/delete
+- [x] Task 9: Interactive API test scenarios script (scripts/test-api.sh)
 
 ## Notes
 
